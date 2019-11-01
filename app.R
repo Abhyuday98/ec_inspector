@@ -42,7 +42,10 @@ lineChart <- function(input, output){
     ggplot(input, aes(x=SaleYear, y=TransactedPrice, col=PlanningArea)) + 
         geom_line() +
         geom_point(size=2) +
-        stat_summary(fun.y = mean, geom ='line')
+        stat_summary(fun.y = mean, geom ='line') +
+        ylab("Transacted Price") +
+        xlab("Year of Sale") +
+        ggtitle("Average Executive Condo Transacted Price per Year & Planning Area Singapore")
 }
 
 
