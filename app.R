@@ -7,6 +7,9 @@
 #    http://shiny.rstudio.com/
 #
 
+
+# PACKAGES
+
 packages <- c("shiny", "tidyverse", "plotly")
 
 for(p in packages){library
@@ -16,14 +19,15 @@ for(p in packages){library
     library(p, character.only = T)
 }
 
+
+# TRANFORMATION OF DATA
+
 propertyECData <- list.files(path = "data", pattern = "*.csv") %>%
     str_c("data/", .) %>%
     map_df(~read_csv(., col_types = cols("Completion Date" = col_character()))) %>%
     select(., -c("No. of Units", "Property Type", "Type of Area"))
 
 names(propertyECData) <- str_replace_all(names(propertyECData), "[ ($)]*", "")
-
-# propertyECData$SaleYear <- str_extract_all(propertyECData$SaleDate, "[0-9]{4}")
 
 propertyECData$SaleYear <- substr(propertyECData$SaleDate, nchar(propertyECData$SaleDate)-3, nchar(propertyECData$SaleDate))
 
@@ -33,6 +37,7 @@ maxYear <- as.Date(max(propertyECData$SaleYear), format = "%Y")
 
 
 # Functions
+
 lineChart <- function(input, output){
     ggplot(input, aes(x=SaleYear, y=TransactedPrice, col=PlanningArea)) + 
         geom_line() +
@@ -41,9 +46,6 @@ lineChart <- function(input, output){
 }
 
 
-
-
-# Define UI for application that draws a histogram
 ui <- fluidPage(
 
     titlePanel("EC Inspector Dashboard"),
@@ -70,7 +72,6 @@ ui <- fluidPage(
     )
 )
 
-# Define server logic required to draw a histogram
 server <- function(input, output) {
     
     lineChartFilter <- reactive({
