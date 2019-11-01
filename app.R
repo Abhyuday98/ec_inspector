@@ -7,10 +7,14 @@
 #    http://shiny.rstudio.com/
 #
 
-library(shiny)
-library(tidyverse)
-library(plotly)
+packages <- c("shiny", "tidyverse", "plotly")
 
+for(p in packages){library
+    if(!require(p, character.only = T)){
+        install.packages(p)
+    }
+    library(p, character.only = T)
+}
 
 propertyECData <- list.files(path = "data", pattern = "*.csv") %>%
     str_c("data/", .) %>%
@@ -30,11 +34,10 @@ maxYear <- as.Date(max(propertyECData$SaleYear), format = "%Y")
 
 # Functions
 lineChart <- function(input, output){
-    ggplot(input, aes(x=SaleYear, y=TransactedPrice, col=PlanningArea, group=PlanningArea)) + 
+    ggplot(input, aes(x=SaleYear, y=TransactedPrice, col=PlanningArea)) + 
         geom_line() +
         geom_point(size=2) +
-        stat_summary(fun.y = mean, geom ='line') +
-        theme(legend.position = "none")
+        stat_summary(fun.y = mean, geom ='line')
 }
 
 
@@ -50,6 +53,7 @@ ui <- fluidPage(
             selectInput(inputId = "PlanningAreas",
                 label = "Select planning areas to compare",
                 choices = unique(propertyECData$PlanningArea),
+                selected = unique(propertyECData$PlanningArea)[1:2],
                 multiple = TRUE),
             sliderInput(inputId = "Years",
                 label = "Select a year range",
@@ -61,7 +65,7 @@ ui <- fluidPage(
             timeFormat = "%Y")
         ),
         column(12,
-            plotOutput("lineChart")
+            plotlyOutput("lineChart")
         )
     )
 )
@@ -69,24 +73,16 @@ ui <- fluidPage(
 # Define server logic required to draw a histogram
 server <- function(input, output) {
     
-    inputYear1 <- function(){
-        
-    }
-    
-    inputYear2 <- function(){
-        input$Years[2:2]
-    }
-    
-    lineChartFilter <- function(){
+    lineChartFilter <- reactive({
         filter(
             as.data.frame(propertyECData), 
-            PlanningArea %in% input$PlanningAreas & 
+            PlanningArea %in% input$PlanningAreas &
                 as.Date(SaleYear, format="%Y") >= as.Date(input$Years[1], format="%Y") & 
                 as.Date(SaleYear, format="%Y") <= as.Date(input$Years[2], format="%Y")
         )
-    }
+    })
     
-    output$lineChart <- renderPlot({
+    output$lineChart <- renderPlotly({
         ggplotly(lineChart(lineChartFilter()))
     })
 }
