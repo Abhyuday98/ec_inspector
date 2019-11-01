@@ -38,11 +38,14 @@ maxYear <- as.Date(max(propertyECData$SaleYear), format = "%Y")
 
 # Functions
 
-lineChart <- function(input, output){
+avgPricePerYrPA <- function(input, output){
     ggplot(input, aes(x=SaleYear, y=TransactedPrice, col=PlanningArea)) + 
         geom_line() +
         geom_point(size=2) +
-        stat_summary(fun.y = mean, geom ='line')
+        stat_summary(fun.y = mean, geom ='line') +
+        ylab("Transacted Price") +
+        xlab("Year of Sale") +
+        ggtitle("Average Executive Condo Transacted Price per Year & Planning Area Singapore")
 }
 
 
@@ -67,24 +70,24 @@ ui <- fluidPage(
             timeFormat = "%Y")
         ),
         column(12,
-            plotlyOutput("lineChart")
+            plotlyOutput("avgPricePerYrPA")
         )
     )
 )
 
 server <- function(input, output) {
     
-    lineChartFilter <- reactive({
+    avgPricePerYrPAFilter <- function(){
         filter(
             as.data.frame(propertyECData), 
             PlanningArea %in% input$PlanningAreas &
                 as.Date(SaleYear, format="%Y") >= as.Date(input$Years[1], format="%Y") & 
                 as.Date(SaleYear, format="%Y") <= as.Date(input$Years[2], format="%Y")
         )
-    })
+    }
     
-    output$lineChart <- renderPlotly({
-        ggplotly(lineChart(lineChartFilter()))
+    output$avgPricePerYrPA <- renderPlotly({
+        ggplotly(avgPricePerYrPA(avgPricePerYrPAFilter()))
     })
 }
 
