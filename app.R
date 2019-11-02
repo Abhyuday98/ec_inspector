@@ -70,7 +70,7 @@ server <- function(input, output) {
     # CHARTS
     
     avgPricePerYrPA <- function(input){
-        ggplot(input, aes(x=SaleYear, y=TransactedPrice, col=PlanningArea)) + 
+        ggplot(input, aes(x=SaleYear, y=MeanTransactedPrice, col=PlanningArea)) + 
             geom_line() +
             geom_point(size=2) +
             stat_summary(fun.y = mean, geom ='line') +
@@ -95,35 +95,15 @@ server <- function(input, output) {
     # FILTERS
     
     avgPricePerYrPAFilter <- function(){
-        filter(
-            propertyECData, 
-            PlanningArea %in% input$PlanningAreas &
-                as.Date(SaleYear, format="%Y") >= as.Date(input$Years[1], format="%Y") & 
-                as.Date(SaleYear, format="%Y") <= as.Date(input$Years[2], format="%Y")
-        )
-    }
-    
-    newSalePriceFilter <- function(){
-        filter(
-            propertyECData,
-            TypeofSale == "New Sale" &
-            PlanningArea %in% input$PlanningAreas &
-                as.Date(SaleYear, format="%Y") >= as.Date(input$Years[1], format="%Y") & 
-                as.Date(SaleYear, format="%Y") <= as.Date(input$Years[2], format="%Y")
-        )
-    }
-    
-    resalePriceFilter <- function(){
-        filter(
-            propertyECData,
-            TypeofSale == "Resale" &
+        propertyECData %>%
+            group_by(PlanningArea, SaleYear) %>%
+            summarise(MeanTransactedPrice = mean(TransactedPrice)) %>%
+            filter(
                 PlanningArea %in% input$PlanningAreas &
-                as.Date(SaleYear, format="%Y") >= as.Date(input$Years[1], format="%Y") & 
-                as.Date(SaleYear, format="%Y") <= as.Date(input$Years[2], format="%Y")
-        )
+                    as.Date(SaleYear, format="%Y") >= as.Date(input$Years[1], format="%Y") & 
+                    as.Date(SaleYear, format="%Y") <= as.Date(input$Years[2], format="%Y")
+            )
     }
-    
-    # PROCESS INPUT DATA TRANSFORMATION
     
     transPriceData <- function(){
         filteredData <- propertyECData %>%
