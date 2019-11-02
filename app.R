@@ -60,7 +60,8 @@ ui <- fluidPage(
         ),
         column(12,
             plotlyOutput("avgPricePerYrPA"),
-            plotlyOutput("compareNewResalePrice")
+            plotOutput("pie"),
+            plotlyOutput("compareNewResalePrice"),
         )
     )
 )
@@ -91,6 +92,25 @@ server <- function(input, output) {
             ggtitle("Comparing Average Executive Condo Transacted Price per Year, Type of Sale & Planning Area Singapore")
     }
     
+    avgPricePerYrPAPie <- function(input) {
+        ggplot(input, aes(x="", y=MeanTransactedPrice, fill=TypeofSale)) +
+            geom_bar(stat="identity", width=1) +
+            coord_polar("y", start=0) +
+            geom_text(
+                aes(
+                    x = 0.5,
+                    label = paste(
+                        round(
+                            input$MeanTransactedPrice/sum(input$MeanTransactedPrice)*100,
+                            digits = 0
+                        ), 
+                    "%")
+                ), 
+                size=5
+            ) + 
+            theme_void()
+    }
+    
     
     # FILTERS
     
@@ -107,26 +127,56 @@ server <- function(input, output) {
     
     transPriceData <- function(){
         filteredData <- propertyECData %>%
-            group_by(PlanningArea, SaleYear, TypeofSale) %>%
-            summarise(MeanTransactedPrice = mean(TransactedPrice)) %>%
             filter(
                 PlanningArea %in% input$PlanningAreas &
                     as.Date(SaleYear, format="%Y") >= as.Date(input$Years[1], format="%Y") & 
                     as.Date(SaleYear, format="%Y") <= as.Date(input$Years[2], format="%Y")
-            )
+            ) %>%
+            group_by(SaleYear, TypeofSale) %>%
+            summarise(MeanTransactedPrice = mean(TransactedPrice))
         
         full_join(filter(filteredData, TypeofSale == "New Sale"), filter(filteredData, TypeofSale == "Resale"), by = "SaleYear")
     }
     
+    avgPricePerYrPAPieFilter <- function(){
+        propertyECData %>%
+            filter(
+                PlanningArea %in% input$PlanningAreas &
+                    as.Date(SaleYear, format="%Y") >= as.Date(input$Years[1], format="%Y") & 
+                    as.Date(SaleYear, format="%Y") <= as.Date(input$Years[2], format="%Y")
+            ) %>%
+            group_by(TypeofSale) %>%
+            summarise(MeanTransactedPrice = mean(TransactedPrice))
+    }
+    
+    avgPricePerYrPAPieAltFilter <- function(input){
+        propertyECData %>%
+            filter(
+                PlanningArea %in% input$PlanningArea &
+                    as.Date(SaleYear, format="%Y") >= as.Date(input$SaleYear, format="%Y")
+            ) %>%
+            group_by(TypeofSale) %>%
+            summarise(MeanTransactedPrice = mean(TransactedPrice))
+    }
     
     # OUTPUTS
     
     output$avgPricePerYrPA <- renderPlotly({
-        ggplotly(avgPricePerYrPA(avgPricePerYrPAFilter()))
+        eventdata <- event_data("plotly_click", source = "avgPricePerYrPASrc")
+        # str(eventdata)
+        
+        # str(which(allYears %in% as.character(maxYear)))
+        
+        # avgPricePerYrPAPie(avgPricePerYrPAPieAltFilter()) + 
+        ggplotly(avgPricePerYrPA(avgPricePerYrPAFilter()), source = "avgPricePerYrPASrc")
     })
     
     output$compareNewResalePrice <- renderPlotly({
-        ggplotly(compareNewResalePrice(transPriceData()))
+        ggplotly(compareNewResalePrice(transPriceData()), source = "compareNewResalePriceSrc")
+    })
+    
+    output$pie <- renderPlot({
+        avgPricePerYrPAPie(avgPricePerYrPAPieFilter())
     })
 }
 
