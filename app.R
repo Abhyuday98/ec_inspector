@@ -33,20 +33,9 @@ propertyECData$SaleYear <- substr(propertyECData$SaleDate, nchar(propertyECData$
 
 minYear <- as.Date(min(propertyECData$SaleYear), format = "%Y")
 maxYear <- as.Date(max(propertyECData$SaleYear), format = "%Y")
+allYears <- unique(propertyECData$SaleYear)
 
 
-
-# Functions
-
-avgPricePerYrPA <- function(input, output){
-    ggplot(input, aes(x=SaleYear, y=TransactedPrice, col=PlanningArea)) + 
-        geom_line() +
-        geom_point(size=2) +
-        stat_summary(fun.y = mean, geom ='line') +
-        ylab("Transacted Price") +
-        xlab("Year of Sale") +
-        ggtitle("Average Executive Condo Transacted Price per Year & Planning Area Singapore")
-}
 
 
 ui <- fluidPage(
@@ -70,24 +59,94 @@ ui <- fluidPage(
             timeFormat = "%Y")
         ),
         column(12,
-            plotlyOutput("avgPricePerYrPA")
+            plotlyOutput("avgPricePerYrPA"),
+            plotlyOutput("compareNewResalePrice")
         )
     )
 )
 
 server <- function(input, output) {
     
+    # CHARTS
+    
+    avgPricePerYrPA <- function(input){
+        ggplot(input, aes(x=SaleYear, y=TransactedPrice, col=PlanningArea)) + 
+            geom_line() +
+            geom_point(size=2) +
+            stat_summary(fun.y = mean, geom ='line') +
+            ylab("Average Transacted Price") +
+            xlab("Year of Sale") +
+            ggtitle("Average Executive Condo Transacted Price per Year & Planning Area Singapore")
+    }
+    
+    compareNewResalePrice <- function(input){
+        ggplot(input) +
+            geom_segment( aes(x=SaleYear, xend=SaleYear, y=MeanTransactedPrice.x, yend=MeanTransactedPrice.y), color="grey") +
+            geom_point( aes(x=SaleYear, y=MeanTransactedPrice.x), color="steelblue", size=2 ) +
+            stat_summary(aes(x=SaleYear, y=MeanTransactedPrice.x), fun.y = mean, geom ='line') +
+            geom_point( aes(x=SaleYear, y=MeanTransactedPrice.y), color="red", size=2 ) +
+            stat_summary(aes(x=SaleYear, y=MeanTransactedPrice.y), fun.y = mean, geom ='line') +
+            ylab("Average Transacted Price") +
+            xlab("Year of Sale") +
+            ggtitle("Comparing Average Executive Condo Transacted Price per Year, Type of Sale & Planning Area Singapore")
+    }
+    
+    
+    # FILTERS
+    
     avgPricePerYrPAFilter <- function(){
         filter(
-            as.data.frame(propertyECData), 
+            propertyECData, 
             PlanningArea %in% input$PlanningAreas &
                 as.Date(SaleYear, format="%Y") >= as.Date(input$Years[1], format="%Y") & 
                 as.Date(SaleYear, format="%Y") <= as.Date(input$Years[2], format="%Y")
         )
     }
     
+    newSalePriceFilter <- function(){
+        filter(
+            propertyECData,
+            TypeofSale == "New Sale" &
+            PlanningArea %in% input$PlanningAreas &
+                as.Date(SaleYear, format="%Y") >= as.Date(input$Years[1], format="%Y") & 
+                as.Date(SaleYear, format="%Y") <= as.Date(input$Years[2], format="%Y")
+        )
+    }
+    
+    resalePriceFilter <- function(){
+        filter(
+            propertyECData,
+            TypeofSale == "Resale" &
+                PlanningArea %in% input$PlanningAreas &
+                as.Date(SaleYear, format="%Y") >= as.Date(input$Years[1], format="%Y") & 
+                as.Date(SaleYear, format="%Y") <= as.Date(input$Years[2], format="%Y")
+        )
+    }
+    
+    # PROCESS INPUT DATA TRANSFORMATION
+    
+    transPriceData <- function(){
+        filteredData <- propertyECData %>%
+            group_by(PlanningArea, SaleYear, TypeofSale) %>%
+            summarise(MeanTransactedPrice = mean(TransactedPrice)) %>%
+            filter(
+                PlanningArea %in% input$PlanningAreas &
+                    as.Date(SaleYear, format="%Y") >= as.Date(input$Years[1], format="%Y") & 
+                    as.Date(SaleYear, format="%Y") <= as.Date(input$Years[2], format="%Y")
+            )
+        
+        full_join(filter(filteredData, TypeofSale == "New Sale"), filter(filteredData, TypeofSale == "Resale"), by = "SaleYear")
+    }
+    
+    
+    # OUTPUTS
+    
     output$avgPricePerYrPA <- renderPlotly({
         ggplotly(avgPricePerYrPA(avgPricePerYrPAFilter()))
+    })
+    
+    output$compareNewResalePrice <- renderPlotly({
+        ggplotly(compareNewResalePrice(transPriceData()))
     })
 }
 
