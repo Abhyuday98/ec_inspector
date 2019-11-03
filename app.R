@@ -8,7 +8,7 @@
 #
 
 
-# PACKAGES
+### PACKAGES
 
 packages <- c("shiny", "tidyverse", "plotly")
 
@@ -20,7 +20,7 @@ for(p in packages){library
 }
 
 
-# TRANFORMATION OF DATA
+### TRANFORMATION OF DATA
 
 propertyECData <- list.files(path = "data", pattern = "*.csv") %>%
     str_c("data/", .) %>%
@@ -33,8 +33,9 @@ propertyECData$SaleYear <- substr(propertyECData$SaleDate, nchar(propertyECData$
 
 minYear <- as.Date(min(propertyECData$SaleYear), format = "%Y")
 maxYear <- as.Date(max(propertyECData$SaleYear), format = "%Y")
-allYears <- unique(propertyECData$SaleYear)
+allYears <- sort(unique(propertyECData$SaleYear))
 
+selectPAList <- sort(unique(propertyECData$PlanningArea))
 
 
 
@@ -46,8 +47,8 @@ ui <- fluidPage(
         column(12,
             selectInput(inputId = "PlanningAreas",
                 label = "Select planning areas to compare",
-                choices = unique(propertyECData$PlanningArea),
-                selected = unique(propertyECData$PlanningArea)[1:2],
+                choices = selectPAList,
+                selected = selectPAList[1:2],
                 multiple = TRUE),
             sliderInput(inputId = "Years",
                 label = "Select a year range",
@@ -61,16 +62,21 @@ ui <- fluidPage(
         column(12,
             plotlyOutput("avgPricePerYrPA"),
             plotOutput("pie"),
-            plotlyOutput("compareNewResalePrice"),
+            plotlyOutput("compareNewResalePrice")
         )
     )
 )
 
 server <- function(input, output) {
     
-    # CHARTS
+    ### REACTIVE DATA
     
-    avgPricePerYrPA <- function(input){
+    avgPricePerYrPASel <- reactiveValues(data = NULL)
+    avgPricePerYrPAClick <- reactiveValues(data = NULL)
+    
+    ### CHARTS
+    
+    avgPricePerYrPAChart <- function(input){
         ggplot(input, aes(x=SaleYear, y=MeanTransactedPrice, col=PlanningArea)) + 
             geom_line() +
             geom_point(size=2) +
@@ -112,7 +118,7 @@ server <- function(input, output) {
     }
     
     
-    # FILTERS
+    ### FILTERS AND DATA
     
     avgPricePerYrPAFilter <- function(){
         propertyECData %>%
@@ -149,26 +155,42 @@ server <- function(input, output) {
             summarise(MeanTransactedPrice = mean(TransactedPrice))
     }
     
-    avgPricePerYrPAPieAltFilter <- function(input){
+    avgPricePerYrPAPieAltFunc <- function(input){
         propertyECData %>%
             filter(
-                PlanningArea %in% input$PlanningArea &
-                    as.Date(SaleYear, format="%Y") >= as.Date(input$SaleYear, format="%Y")
-            ) %>%
+                PlanningArea %in% input[1] &
+                    as.Date(SaleYear, format="%Y") == as.Date(input[2], format="%Y")
+            )
+    }
+    
+    avgPricePerYrPAPieAltFilter <- function(input){
+        data <- list()
+        length <- length(input$PA)
+        i <- 1
+        
+        if(length < 2){
+            avgPricePerYrPAPieAltFunc(c(input$PA, input$year))
+        }
+        else{
+            while(i < length){
+                data <- rbind(data, avgPricePerYrPAPieAltFunc(c(input$PA[i], input$year[i])))
+                i <- i + 1
+            }
+        }
+        
+        data %>%
             group_by(TypeofSale) %>%
             summarise(MeanTransactedPrice = mean(TransactedPrice))
     }
     
-    # OUTPUTS
+    
+    ### OUTPUTS
     
     output$avgPricePerYrPA <- renderPlotly({
-        eventdata <- event_data("plotly_click", source = "avgPricePerYrPASrc")
-        # str(eventdata)
+        avgPricePerYrPASel$data <- event_data("plotly_selected", source = "avgPricePerYrPASrc")
+        avgPricePerYrPAClick$data <- event_data("plotly_click", source = "avgPricePerYrPASrc")
         
-        # str(which(allYears %in% as.character(maxYear)))
-        
-        # avgPricePerYrPAPie(avgPricePerYrPAPieAltFilter()) + 
-        ggplotly(avgPricePerYrPA(avgPricePerYrPAFilter()), source = "avgPricePerYrPASrc")
+        ggplotly(avgPricePerYrPAChart(avgPricePerYrPAFilter()), source = "avgPricePerYrPASrc")
     })
     
     output$compareNewResalePrice <- renderPlotly({
@@ -176,7 +198,29 @@ server <- function(input, output) {
     })
     
     output$pie <- renderPlot({
-        avgPricePerYrPAPie(avgPricePerYrPAPieFilter())
+        if(is.null(avgPricePerYrPASel$data) & is.null(avgPricePerYrPAClick$data)){
+            avgPricePerYrPAPie(avgPricePerYrPAPieFilter())
+        }
+        else{
+            data <- if(is.null(avgPricePerYrPAClick$data)){
+                avgPricePerYrPASel$data
+            }
+            else{
+                avgPricePerYrPAClick$data
+            }
+            
+            str(is.null(avgPricePerYrPAClick$data))
+            str(avgPricePerYrPASel$data)
+            str(avgPricePerYrPAClick$data)
+            
+            filteredPA <- sort(unique(avgPricePerYrPAFilter()$PlanningArea))
+            calcIndPA <- data$curveNumber - (length(filteredPA) - 1)
+
+            year <- sort(unique(avgPricePerYrPAFilter()$SaleYear))[data$x]
+            PA <- filteredPA[calcIndPA]
+
+            avgPricePerYrPAPie(avgPricePerYrPAPieAltFilter(list(PA = PA, year = year)))
+        }
     })
 }
 
