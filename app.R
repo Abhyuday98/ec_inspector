@@ -56,13 +56,18 @@ ui <- fluidPage(
                 min = minYear,
                 max = maxYear,
                 value = c(minYear, maxYear),
-            dragRange=TRUE,
-            timeFormat = "%Y")
+                dragRange=TRUE,
+                timeFormat = "%Y")
         ),
         column(12,
             plotlyOutput("avgPricePerYrPA"),
-            plotOutput("pie"),
-            plotlyOutput("compareNewResalePrice")
+            plotOutput("proportionNewAndResale"),
+            plotlyOutput("compareNewResalePrice"),
+            selectInput(inputId = "ViolinYear",
+                label = "Select planning areas to compare",
+                choices = allYears,
+                selected = allYears[1]),
+            plotlyOutput("distNewResalePrice")
         )
     )
 )
@@ -122,6 +127,11 @@ server <- function(input, output) {
             ) + 
             scale_fill_manual(values = saleTypeColor) +
             theme_void()
+    }
+    
+    distNewResalePriceViolin <- function(input){
+        ggplot(input, aes(x=PlanningArea, y=TransactedPrice, fill=TypeofSale)) +
+            geom_violin()
     }
     
     
@@ -201,6 +211,14 @@ server <- function(input, output) {
         }
     }
     
+    distNewResalePriceFilter <- function(){
+        propertyECData %>%
+            filter(
+                SaleYear == input$ViolinYear
+            ) %>%
+            group_by(PlanningArea, TypeofSale)
+    }
+    
     
     ### OUTPUTS
     
@@ -215,7 +233,7 @@ server <- function(input, output) {
         ggplotly(compareNewResalePrice(transPriceData()), source = "compareNewResalePriceSrc")
     })
     
-    output$pie <- renderPlot({
+    output$proportionNewAndResale <- renderPlot({
         if(is.null(avgPricePerYrPASel$data) & is.null(avgPricePerYrPAClick$data)){
             avgPricePerYrPAPie(avgPricePerYrPAPieFilter())
         }
@@ -235,6 +253,10 @@ server <- function(input, output) {
 
             avgPricePerYrPAPie(avgPricePerYrPAPieAltFilter(list(PA = PA, year = year)))
         }
+    })
+    
+    output$distNewResalePrice <- renderPlotly({
+        ggplotly(distNewResalePriceViolin(distNewResalePriceFilter()))
     })
 }
 
