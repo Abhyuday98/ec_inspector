@@ -71,7 +71,7 @@ server <- function(input, output) {
     
     ### COMMON DATA
     
-    saleTypeColor <- c("darkturquoise", "darkorange")
+    saleTypeColor <- c("New Sale" = "darkturquoise", "Resale" = "darkorange")
     
     
     ### REACTIVE DATA
