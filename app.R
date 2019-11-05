@@ -187,7 +187,7 @@ server <- function(input, output) {
                 
                 i <- i + 1
             }
-            str(data)
+            
             data %>%
                 group_by(TypeofSale) %>%
                 summarise(MeanTransactedPrice = mean(MeanTransactedPrice))
