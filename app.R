@@ -69,6 +69,11 @@ ui <- fluidPage(
 
 server <- function(input, output) {
     
+    ### COMMON DATA
+    
+    saleTypeColor <- c("darkturquoise", "darkorange")
+    
+    
     ### REACTIVE DATA
     
     avgPricePerYrPASel <- reactiveValues(data = NULL)
@@ -89,10 +94,11 @@ server <- function(input, output) {
     compareNewResalePrice <- function(input){
         ggplot(input) +
             geom_segment( aes(x=SaleYear, xend=SaleYear, y=MeanTransactedPrice.x, yend=MeanTransactedPrice.y), color="grey") +
-            geom_point( aes(x=SaleYear, y=MeanTransactedPrice.x), color="steelblue", size=2 ) +
+            geom_point( aes(x=SaleYear, y=MeanTransactedPrice.x, col="New Sale"), size=2 ) +
             stat_summary(aes(x=SaleYear, y=MeanTransactedPrice.x), fun.y = mean, geom ='line') +
-            geom_point( aes(x=SaleYear, y=MeanTransactedPrice.y), color="red", size=2 ) +
+            geom_point( aes(x=SaleYear, y=MeanTransactedPrice.y, col="Resale"), size=2 ) +
             stat_summary(aes(x=SaleYear, y=MeanTransactedPrice.y), fun.y = mean, geom ='line') +
+            scale_color_manual(values = saleTypeColor) +
             ylab("Average Transacted Price") +
             xlab("Year of Sale") +
             ggtitle("Comparing Average Executive Condo Transacted Price per Year, Type of Sale & Planning Area Singapore")
@@ -114,6 +120,7 @@ server <- function(input, output) {
                 ), 
                 size=5
             ) + 
+            scale_fill_manual(values = saleTypeColor) +
             theme_void()
     }
     
@@ -187,7 +194,7 @@ server <- function(input, output) {
                 
                 i <- i + 1
             }
-            str(data)
+            
             data %>%
                 group_by(TypeofSale) %>%
                 summarise(MeanTransactedPrice = mean(MeanTransactedPrice))
