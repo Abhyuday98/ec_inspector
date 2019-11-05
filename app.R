@@ -126,8 +126,8 @@ server <- function(input, output) {
             summarise(MeanTransactedPrice = mean(TransactedPrice)) %>%
             filter(
                 PlanningArea %in% input$PlanningAreas &
-                    as.Date(SaleYear, format="%Y") >= as.Date(input$Years[1], format="%Y") & 
-                    as.Date(SaleYear, format="%Y") <= as.Date(input$Years[2], format="%Y")
+                    as.numeric(SaleYear) >= as.numeric(substr(input$Years[1],0,4)) & 
+                    as.numeric(SaleYear) <= as.numeric(substr(input$Years[2],0,4))
             )
     }
     
@@ -135,8 +135,8 @@ server <- function(input, output) {
         filteredData <- propertyECData %>%
             filter(
                 PlanningArea %in% input$PlanningAreas &
-                    as.Date(SaleYear, format="%Y") >= as.Date(input$Years[1], format="%Y") & 
-                    as.Date(SaleYear, format="%Y") <= as.Date(input$Years[2], format="%Y")
+                    as.numeric(SaleYear) >= as.numeric(substr(input$Years[1],0,4)) & 
+                    as.numeric(SaleYear) <= as.numeric(substr(input$Years[2],0,4))
             ) %>%
             group_by(SaleYear, TypeofSale) %>%
             summarise(MeanTransactedPrice = mean(TransactedPrice))
@@ -145,11 +145,11 @@ server <- function(input, output) {
     }
     
     avgPricePerYrPAPieFilter <- function(){
-        propertyECData %>%
+       propertyECData %>%
             filter(
                 PlanningArea %in% input$PlanningAreas &
-                    as.Date(SaleYear, format="%Y") >= as.Date(input$Years[1], format="%Y") & 
-                    as.Date(SaleYear, format="%Y") <= as.Date(input$Years[2], format="%Y")
+                    as.numeric(SaleYear) >= as.numeric(substr(input$Years[1],0,4)) & 
+                    as.numeric(SaleYear) <= as.numeric(substr(input$Years[2],0,4))
             ) %>%
             group_by(TypeofSale) %>%
             summarise(MeanTransactedPrice = mean(TransactedPrice))
@@ -159,28 +159,39 @@ server <- function(input, output) {
         propertyECData %>%
             filter(
                 PlanningArea %in% input[1] &
-                    as.Date(SaleYear, format="%Y") == as.Date(input[2], format="%Y")
-            )
+                    as.numeric(SaleYear) == as.numeric(input[2])
+            ) %>%
+            group_by(TypeofSale) %>%
+            summarise(MeanTransactedPrice = mean(TransactedPrice))
     }
     
     avgPricePerYrPAPieAltFilter <- function(input){
-        data <- list()
         length <- length(input$PA)
-        i <- 1
         
         if(length < 2){
-            avgPricePerYrPAPieAltFunc(c(input$PA, input$year))
+            avgPricePerYrPAPieAltFunc(c(input$PA[1], input$year[1]))
         }
         else{
+            i <- 0
+            data <- NULL
+            
             while(i < length){
-                data <- rbind(data, avgPricePerYrPAPieAltFunc(c(input$PA[i], input$year[i])))
+                dataAddOns <- avgPricePerYrPAPieAltFunc(c(input$PA[i+1], input$year[i+1]))
+                
+                if(is.null(data)){
+                    data <- dataAddOns
+                }
+                else{
+                    data <- bind_rows(dataAddOns, data)
+                }
+                
                 i <- i + 1
             }
+            str(data)
+            data %>%
+                group_by(TypeofSale) %>%
+                summarise(MeanTransactedPrice = mean(MeanTransactedPrice))
         }
-        
-        data %>%
-            group_by(TypeofSale) %>%
-            summarise(MeanTransactedPrice = mean(TransactedPrice))
     }
     
     
@@ -208,10 +219,6 @@ server <- function(input, output) {
             else{
                 avgPricePerYrPAClick$data
             }
-            
-            str(is.null(avgPricePerYrPAClick$data))
-            str(avgPricePerYrPASel$data)
-            str(avgPricePerYrPAClick$data)
             
             filteredPA <- sort(unique(avgPricePerYrPAFilter()$PlanningArea))
             calcIndPA <- data$curveNumber - (length(filteredPA) - 1)
