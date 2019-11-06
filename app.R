@@ -131,7 +131,11 @@ server <- function(input, output) {
     
     distNewResalePriceViolin <- function(input){
         ggplot(input, aes(x=PlanningArea, y=TransactedPrice, fill=TypeofSale)) +
-            geom_violin()
+            geom_violin() +
+            scale_fill_manual(values = saleTypeColor) +
+            ylab("Transacted Price") +
+            xlab("Planning Area") +
+            ggtitle("Distribution Executive Condo Transacted Price per Year, Planning Area & Type of Sale")
     }
     
     
