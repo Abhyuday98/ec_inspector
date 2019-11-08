@@ -40,43 +40,56 @@ selectPAList <- sort(unique(propertyECData$PlanningArea))
 
 
 ui <- fluidPage(
-
+    
     titlePanel("EC Inspector Dashboard"),
     
     fluidRow(
+        column(3,
+               selectInput(inputId = "PlanningAreas",
+                           label = "Select planning areas to compare",
+                           choices = selectPAList,
+                           selected = selectPAList[1:2],
+                           multiple = TRUE)
+        ),
+        column(5,
+               sliderInput(inputId = "Years",
+                           label = "Select a year range",
+                           step = 1,
+                           min = minYear,
+                           max = maxYear,
+                           value = c(minYear, maxYear),
+                           dragRange=TRUE,
+                           timeFormat = "%Y")
+        ),
         column(4,
-            selectInput(inputId = "PlanningAreas",
-                label = "Select planning areas to compare",
-                choices = selectPAList,
-                selected = selectPAList[1:2],
-                multiple = TRUE)
-        ),
-        column(6,
-            sliderInput(inputId = "Years",
-                label = "Select a year range",
-                step = 1,
-                min = minYear,
-                max = maxYear,
-                value = c(minYear, maxYear),
-                dragRange=TRUE,
-                timeFormat = "%Y")
-        ),
+               actionButton("propReset", "See Overall Proportion")
+        )
+    ),
+    fluidRow(
         column(8,
-            plotlyOutput("avgPricePerYrPA")
+               plotlyOutput("avgPricePerYrPA")
         ),
-        column(4,
-            actionButton("propReset", "See Overall Proportion"),
-            plotOutput("proportionNewAndResale")
-        ),
-        column(6,
-            plotlyOutput("compareNewResalePrice")
-        ),
-        column(6,
-           selectInput(inputId = "ViolinYear",
-               label = "Select planning areas to compare",
-               choices = allYears,
-               selected = allYears[1]),
-           plotlyOutput("distNewResalePrice")
+        column(3,
+               plotOutput("proportionNewAndResale")
+        )
+    ),
+    fluidRow(
+        column(12,
+               plotlyOutput("compareNewResalePrice")
+        )
+    ),
+    fluidRow(
+        column(12,
+               selectInput(inputId = "ViolinYear",
+                           label = "Select planning areas to compare",
+                           choices = allYears,
+                           selected = allYears[1]),
+               plotlyOutput("distNewResalePrice")
+        )
+    ),
+    fluidRow(
+        column(12,
+               plotOutput("realValResaleHeatmap")
         )
     )
 )
@@ -123,18 +136,16 @@ server <- function(input, output) {
     }
     
     avgPricePerYrPAPie <- function(input) {
-        ggplot(input, aes(x="", y=MeanTransactedPrice, fill=TypeofSale)) +
+        ggplot(input, aes(x="", y=n, fill=TypeofSale)) +
             geom_bar(stat="identity", width=1) +
             coord_polar("y", start=0) +
             geom_text(
                 aes(
                     x = 0.5,
-                    label = paste(
-                        round(
-                            input$MeanTransactedPrice/sum(input$MeanTransactedPrice)*100,
-                            digits = 0
-                        ), 
-                    "%")
+                    label = round(
+                        n,
+                        digits = 0
+                    )
                 ), 
                 size=5
             ) + 
@@ -143,12 +154,20 @@ server <- function(input, output) {
     }
     
     distNewResalePriceViolin <- function(input){
-        ggplot(input, aes(x=PlanningArea, y=TransactedPrice, fill=TypeofSale)) +
-            geom_violin() +
+        ggplot(input) +
+            geom_point(aes(x=TypeofSale, y=MeanTransactedPrice, fill=TypeofSale), shape = 23, size = 2) +
+            geom_violin(aes(x=TypeofSale, y=TransactedPrice, fill=TypeofSale)) +
+            facet_grid(. ~ PlanningArea) +
             scale_fill_manual(values = saleTypeColor) +
+            theme(panel.spacing = unit(0, "lines"), axis.text.x=element_blank(), axis.ticks.x=element_blank(), panel.grid.major.x = element_blank()) +
             ylab("Transacted Price") +
             xlab("Planning Area") +
             ggtitle("Distribution Executive Condo Transacted Price per Year, Planning Area & Type of Sale")
+    }
+    
+    realValResaleHeatmap <- function(input){
+        ggplot(input, aes(x=SaleYear, y=PlanningArea, fill=RealValue)) + 
+            geom_tile()
     }
     
     
@@ -179,53 +198,24 @@ server <- function(input, output) {
     }
     
     avgPricePerYrPAPieFilter <- function(){
-       propertyECData %>%
+        d <- propertyECData %>%
             filter(
                 PlanningArea %in% input$PlanningAreas &
                     as.numeric(SaleYear) >= as.numeric(substr(input$Years[1],0,4)) & 
                     as.numeric(SaleYear) <= as.numeric(substr(input$Years[2],0,4))
             ) %>%
             group_by(TypeofSale) %>%
-            summarise(MeanTransactedPrice = mean(TransactedPrice))
+            count(TypeofSale)
     }
     
-    avgPricePerYrPAPieAltFunc <- function(input){
-        propertyECData %>%
+    avgPricePerYrPAPieAltFilter <- function(input){
+        d <- propertyECData %>%
             filter(
                 PlanningArea %in% input[1] &
                     as.numeric(SaleYear) == as.numeric(input[2])
             ) %>%
             group_by(TypeofSale) %>%
-            summarise(MeanTransactedPrice = mean(TransactedPrice))
-    }
-    
-    avgPricePerYrPAPieAltFilter <- function(input){
-        length <- length(input$PA)
-        
-        if(length < 2){
-            avgPricePerYrPAPieAltFunc(c(input$PA[1], input$year[1]))
-        }
-        else{
-            i <- 0
-            data <- NULL
-            
-            while(i < length){
-                dataAddOns <- avgPricePerYrPAPieAltFunc(c(input$PA[i+1], input$year[i+1]))
-                
-                if(is.null(data)){
-                    data <- dataAddOns
-                }
-                else{
-                    data <- bind_rows(dataAddOns, data)
-                }
-                
-                i <- i + 1
-            }
-            
-            data %>%
-                group_by(TypeofSale) %>%
-                summarise(MeanTransactedPrice = mean(MeanTransactedPrice))
-        }
+            count(TypeofSale)
     }
     
     distNewResalePriceFilter <- function(){
@@ -233,7 +223,14 @@ server <- function(input, output) {
             filter(
                 SaleYear == input$ViolinYear
             ) %>%
-            group_by(PlanningArea, TypeofSale)
+            group_by(PlanningArea, TypeofSale) %>%
+            mutate(
+                MeanTransactedPrice = mean(TransactedPrice)
+            )
+    }
+    
+    realValResaleFilter <- function(){
+        data <- full_join(propertyECData, propertyECData, by = "Address")
     }
     
     
@@ -257,7 +254,7 @@ server <- function(input, output) {
             data <- avgPricePerYrPAClick$data
             
             filteredPA <- sort(unique(avgPricePerYrPAFilter()$PlanningArea))
-            calcIndPA <- data$curveNumber + (length(filteredPA) - 1)
+            calcIndPA <- data$curveNumber + 1
             
             year <- as.character(data$x)
             PA <- filteredPA[calcIndPA]
@@ -268,6 +265,11 @@ server <- function(input, output) {
     
     output$distNewResalePrice <- renderPlotly({
         ggplotly(distNewResalePriceViolin(distNewResalePriceFilter()))
+    })
+    
+    output$realValResaleHeatmap <- renderPlot({
+        realValResaleFilter()
+        # realValResaleHeatmap(realValResaleFilter())
     })
 }
 
