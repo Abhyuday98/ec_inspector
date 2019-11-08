@@ -87,10 +87,9 @@ server <- function(input, output) {
     ### CHARTS
     
     avgPricePerYrPAChart <- function(input){
-        ggplot(input, aes(x=SaleYear, y=MeanTransactedPrice, col=PlanningArea)) + 
+        ggplot(input, aes(x=as.numeric(SaleYear), y=MeanTransactedPrice, col=PlanningArea)) + 
             geom_line() +
             geom_point(size=2) +
-            stat_summary(fun.y = mean, geom ='line') +
             ylab("Average Transacted Price") +
             xlab("Year of Sale") +
             ggtitle("Average Executive Condo Transacted Price per Year & Planning Area Singapore")
