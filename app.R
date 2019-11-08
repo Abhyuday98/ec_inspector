@@ -44,12 +44,14 @@ ui <- fluidPage(
     titlePanel("EC Inspector Dashboard"),
     
     fluidRow(
-        column(12,
+        column(4,
             selectInput(inputId = "PlanningAreas",
                 label = "Select planning areas to compare",
                 choices = selectPAList,
                 selected = selectPAList[1:2],
-                multiple = TRUE),
+                multiple = TRUE)
+        ),
+        column(6,
             sliderInput(inputId = "Years",
                 label = "Select a year range",
                 step = 1,
@@ -59,15 +61,22 @@ ui <- fluidPage(
                 dragRange=TRUE,
                 timeFormat = "%Y")
         ),
-        column(12,
-            plotlyOutput("avgPricePerYrPA"),
-            plotOutput("proportionNewAndResale"),
-            plotlyOutput("compareNewResalePrice"),
-            selectInput(inputId = "ViolinYear",
-                label = "Select planning areas to compare",
-                choices = allYears,
-                selected = allYears[1]),
-            plotlyOutput("distNewResalePrice")
+        column(8,
+            plotlyOutput("avgPricePerYrPA")
+        ),
+        column(4,
+            actionButton("propReset", "See Overall Proportion"),
+            plotOutput("proportionNewAndResale")
+        ),
+        column(6,
+            plotlyOutput("compareNewResalePrice")
+        ),
+        column(6,
+           selectInput(inputId = "ViolinYear",
+               label = "Select planning areas to compare",
+               choices = allYears,
+               selected = allYears[1]),
+           plotlyOutput("distNewResalePrice")
         )
     )
 )
@@ -81,8 +90,13 @@ server <- function(input, output) {
     
     ### REACTIVE DATA
     
-    avgPricePerYrPASel <- reactiveValues(data = NULL)
     avgPricePerYrPAClick <- reactiveValues(data = NULL)
+    
+    ### OBSERVE EVENT
+    
+    observeEvent(input$propReset, {
+        avgPricePerYrPAClick$data <- NULL
+    })
     
     ### CHARTS
     
@@ -226,7 +240,6 @@ server <- function(input, output) {
     ### OUTPUTS
     
     output$avgPricePerYrPA <- renderPlotly({
-        avgPricePerYrPASel$data <- event_data("plotly_selected", source = "avgPricePerYrPASrc")
         avgPricePerYrPAClick$data <- event_data("plotly_click", source = "avgPricePerYrPASrc")
         
         ggplotly(avgPricePerYrPAChart(avgPricePerYrPAFilter()), source = "avgPricePerYrPASrc")
@@ -237,23 +250,18 @@ server <- function(input, output) {
     })
     
     output$proportionNewAndResale <- renderPlot({
-        if(is.null(avgPricePerYrPASel$data) & is.null(avgPricePerYrPAClick$data)){
+        if(is.null(avgPricePerYrPAClick$data)){
             avgPricePerYrPAPie(avgPricePerYrPAPieFilter())
         }
         else{
-            data <- if(is.null(avgPricePerYrPAClick$data)){
-                avgPricePerYrPASel$data
-            }
-            else{
-                avgPricePerYrPAClick$data
-            }
+            data <- avgPricePerYrPAClick$data
             
             filteredPA <- sort(unique(avgPricePerYrPAFilter()$PlanningArea))
-            calcIndPA <- data$curveNumber - (length(filteredPA) - 1)
-
-            year <- sort(unique(avgPricePerYrPAFilter()$SaleYear))[data$x]
+            calcIndPA <- data$curveNumber + (length(filteredPA) - 1)
+            
+            year <- as.character(data$x)
             PA <- filteredPA[calcIndPA]
-
+            
             avgPricePerYrPAPie(avgPricePerYrPAPieAltFilter(list(PA = PA, year = year)))
         }
     })
