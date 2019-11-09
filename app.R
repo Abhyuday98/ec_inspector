@@ -159,7 +159,9 @@ server <- function(input, output) {
             geom_violin(aes(x=TypeofSale, y=TransactedPrice, fill=TypeofSale)) +
             facet_grid(. ~ PlanningArea) +
             scale_fill_manual(values = saleTypeColor) +
-            theme(panel.spacing = unit(0, "lines"), axis.text.x=element_blank(), axis.ticks.x=element_blank(), panel.grid.major.x = element_blank()) +
+            theme(panel.spacing = unit(0, "lines"), axis.text.x=element_blank(), axis.ticks.x=element_blank(), panel.grid.major.x = element_blank(),
+                  panel.border = element_rect(color = "black", fill = NA, size = 1),
+                  strip.background = element_rect(color = "black", size = 1)) +
             ylab("Transacted Price") +
             xlab("Planning Area") +
             ggtitle("Distribution Executive Condo Transacted Price per Year, Planning Area & Type of Sale")
