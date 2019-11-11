@@ -10,14 +10,10 @@
 
 ### PACKAGES
 
-packages <- c("shiny", "tidyverse", "plotly")
-
-for(p in packages){library
-    if(!require(p, character.only = T)){
-        install.packages(p)
-    }
-    library(p, character.only = T)
-}
+library("shiny")
+library("shinyjs")
+library("tidyverse")
+library("plotly")
 
 
 ### TRANFORMATION OF DATA
@@ -60,9 +56,11 @@ ui <- fluidPage(
                            value = c(minYear, maxYear),
                            dragRange=TRUE,
                            timeFormat = "%Y")
-        ),
-        column(4,
-               actionButton("propReset", "See Overall Proportion")
+        )
+    ),
+    fluidRow(
+        column(12,
+            helpText("*Double click on the grey area to unselect data points")
         )
     ),
     fluidRow(
@@ -94,7 +92,7 @@ ui <- fluidPage(
     )
 )
 
-server <- function(input, output) {
+server <- function(input, output, session) {
     
     ### COMMON DATA
     
@@ -105,19 +103,13 @@ server <- function(input, output) {
     
     avgPricePerYrPAClick <- reactiveValues(data = NULL)
     
-    ### OBSERVE EVENT
-    
-    observeEvent(input$propReset, {
-        avgPricePerYrPAClick$data <- NULL
-    })
-    
     ### CHARTS
     
     avgPricePerYrPAChart <- function(input){
         ggplot(input, aes(x=as.numeric(SaleYear), y=MeanTransactedPrice, col=PlanningArea)) + 
             geom_line() +
             geom_point(size=2) +
-            #geom_text(position = position_stack(vjust = 0.5))+
+            scale_x_continuous(breaks = as.numeric(input$SaleYear)) +
             ylab("Average Transacted Price") +
             xlab("Year of Sale") +
             ggtitle("Average Executive Condo Transacted Price per Year & Planning Area Singapore")
