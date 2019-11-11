@@ -117,6 +117,7 @@ server <- function(input, output) {
         ggplot(input, aes(x=as.numeric(SaleYear), y=MeanTransactedPrice, col=PlanningArea)) + 
             geom_line() +
             geom_point(size=2) +
+            #geom_text(position = position_stack(vjust = 0.5))+
             ylab("Average Transacted Price") +
             xlab("Year of Sale") +
             ggtitle("Average Executive Condo Transacted Price per Year & Planning Area Singapore")
@@ -141,13 +142,14 @@ server <- function(input, output) {
             coord_polar("y", start=0) +
             geom_text(
                 aes(
-                    x = 0.5,
+                    #x = 0.5,
                     label = round(
                         n,
                         digits = 0
                     )
                 ), 
-                size=5
+                size=5,
+                position = position_stack(vjust = 0.5)
             ) + 
             scale_fill_manual(values = saleTypeColor) +
             theme_void()
