@@ -89,6 +89,9 @@ ui <- fluidPage(
         column(12,
                plotOutput("realValResaleHeatmap")
         )
+    ),
+    fluidRow(
+        helpText("Done by Abhyuday, Bernice Ng, Ming Wei")
     )
 )
 
