@@ -1,0 +1,101 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+```{r}
+packages <- c("shiny", "tidyverse", "plotly","pracma")
+
+for(p in packages){library
+    if(!require(p, character.only = T)){
+        install.packages(p)
+    }
+    library(p, character.only = T)
+}
+```
+
+
+
+```{r}
+
+#sales
+propertyECData <- list.files(path = "data", pattern = "*.csv") %>%
+    str_c("data/", .) %>%
+    map_df(~read_csv(., col_types = cols("Completion Date" = col_character()))) %>%
+    select(., -c("No. of Units", "Property Type", "Type of Area"))
+
+names(propertyECData) <- str_replace_all(names(propertyECData), "[ ($)]*", "")
+
+propertyECData$SaleYear <- substr(propertyECData$SaleDate, nchar(propertyECData$SaleDate)-3, nchar(propertyECData$SaleDate))
+
+sorted_property <-propertyECData[order(propertyECData$Address, propertyECData$SaleDate),]
+sorted_property[, c("PurchaseDate")] <- NA
+for (row in 1:nrow(sorted_property)) {
+    address_1 <-sorted_property[row, "Address"]
+    address_2 <-sorted_property[row+1, "Address"]
+    comp = strcmp(address_2, address_1)
+    #print(row)
+    if (!is.na(NA)){
+      if (comp==TRUE){
+        sorted_property[row+1, "PurchaseDate"] <- sorted_property[row, "SaleYear"]
+      }
+    }
+    
+}
+#minYear <- as.Date(min(propertyECData$SaleYear), format = "%Y")
+#maxYear <- as.Date(max(propertyECData$SaleYear), format = "%Y")
+#allYears <- sort(unique(propertyECData$SaleYear))
+cpiData <- read_csv("./data/CPI.csv" )
+#propertyECData <- mutate(propertyECData, price_per_sqft = price/sqft)
+#cpiData<- list.files(path = "data", pattern = "CPI.csv") 
+cpiData<- transform(cpiData, SaleYear = as.numeric(SaleYear))
+sorted_property <- transform(sorted_property, SaleYear = as.numeric(SaleYear))
+data_heatmap <- inner_join(sorted_property, cpiData, by = c("SaleYear" = "b"))
+data_heatmap <- full_join(data, data, by = "Address")
+data <- subset(data, SaleDate.x!=SaleDate.y)
+```
+
+
+```{r}
+#propertyECData <- mutate(propertyECData, price_per_sqft = price/sqft)
+#cpiData<- list.files(path = "data", pattern = "CPI.csv") %>%
+data <- mutate(
+  data, SellingPriceCurrentValue = ifelse(
+    SaleYear.x > SaleYear.y, TransactedPrice.y*(
+      cpi.y.x)/(
+        cpi.y.y), TransactedPrice.x*(
+          cpi.y.y)/(
+            cpi.y.x )))
+
+
+```
+```{r}
+sorted_property <-propertyECData[order(propertyECData$Address, propertyECData$SaleDate),]
+sorted_property[, c("PurchaseDate")] <- NA
+for (row in 1:nrow(sorted_property)) {
+    address_1 <-sorted_property[row, "Address"]
+    address_2 <-sorted_property[row+1, "Address"]
+    comp = strcmp(address_2, address_1)
+    #print(row)
+    if (!is.na(NA)){
+      if (comp==TRUE){
+        sorted_property[row+1, "PurchaseDate"] <- sorted_property[row, "SaleYear"]
+      }
+    }
+    
+}
+
+
+```
+
+```{r}
+#is.na(propertyECData$Address)
+#propertyECData_NA <- subset(propertyECData, propertyECData$Address==NA)
+propertyECData[rowSums(is.na(propertyECData))==3,]
+
+```
+
