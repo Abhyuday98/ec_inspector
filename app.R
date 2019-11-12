@@ -238,7 +238,7 @@ server <- function(input, output, session) {
         currentValueData %>%
             group_by(SaleYear, PlanningArea) %>%
             mutate(
-                RealValueEarned = mean(PurchasePriceCurrentValue - TransactedPrice)
+                RealValueEarned = mean(TransactedPrice-PurchasePriceCurrentValue)
             )
     }
     
