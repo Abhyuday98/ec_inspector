@@ -31,71 +31,54 @@ propertyECData <- list.files(path = "data", pattern = "*.csv") %>%
 names(propertyECData) <- str_replace_all(names(propertyECData), "[ ($)]*", "")
 
 propertyECData$SaleYear <- substr(propertyECData$SaleDate, nchar(propertyECData$SaleDate)-3, nchar(propertyECData$SaleDate))
-
-sorted_property <-propertyECData[order(propertyECData$Address, propertyECData$SaleDate),]
-sorted_property[, c("PurchaseDate")] <- NA
-for (row in 1:nrow(sorted_property)) {
-    address_1 <-sorted_property[row, "Address"]
-    address_2 <-sorted_property[row+1, "Address"]
-    comp = strcmp(address_2, address_1)
-    #print(row)
-    if (!is.na(NA)){
-      if (comp==TRUE){
-        sorted_property[row+1, "PurchaseDate"] <- sorted_property[row, "SaleYear"]
-      }
-    }
-    
-}
-#minYear <- as.Date(min(propertyECData$SaleYear), format = "%Y")
-#maxYear <- as.Date(max(propertyECData$SaleYear), format = "%Y")
-#allYears <- sort(unique(propertyECData$SaleYear))
 cpiData <- read_csv("./data/CPI.csv" )
-#propertyECData <- mutate(propertyECData, price_per_sqft = price/sqft)
-#cpiData<- list.files(path = "data", pattern = "CPI.csv") 
 cpiData<- transform(cpiData, SaleYear = as.numeric(SaleYear))
-sorted_property <- transform(sorted_property, SaleYear = as.numeric(SaleYear))
-data_heatmap <- inner_join(sorted_property, cpiData, by = c("SaleYear" = "b"))
-data_heatmap <- full_join(data, data, by = "Address")
-data <- subset(data, SaleDate.x!=SaleDate.y)
-```
 
-
-```{r}
-#propertyECData <- mutate(propertyECData, price_per_sqft = price/sqft)
-#cpiData<- list.files(path = "data", pattern = "CPI.csv") %>%
-data <- mutate(
-  data, SellingPriceCurrentValue = ifelse(
-    SaleYear.x > SaleYear.y, TransactedPrice.y*(
-      cpi.y.x)/(
-        cpi.y.y), TransactedPrice.x*(
-          cpi.y.y)/(
-            cpi.y.x )))
-
-
-```
-```{r}
 sorted_property <-propertyECData[order(propertyECData$Address, propertyECData$SaleDate),]
-sorted_property[, c("PurchaseDate")] <- NA
+sorted_property[, c("PurchaseYear")] <- NA
+sorted_property[, c("PurchaseYearCPI")] <- NA
+sorted_property[, c("SaleYearCPI")] <- NA
+sorted_property[, c("PurchasePriceCurrentValue")] <- NA
+
+
 for (row in 1:nrow(sorted_property)) {
-    address_1 <-sorted_property[row, "Address"]
-    address_2 <-sorted_property[row+1, "Address"]
-    comp = strcmp(address_2, address_1)
-    #print(row)
-    if (!is.na(NA)){
+    address_1 <-as.character(sorted_property[row, "Address"])
+    address_2 <-as.character(sorted_property[row+1, "Address"])
+    #print((address_1))
+    #print(typeof(address_1))
+    if (!is.na(address_1) & !is.na(address_2)){
+      comp = strcmp(address_2, address_1)
+
       if (comp==TRUE){
-        sorted_property[row+1, "PurchaseDate"] <- sorted_property[row, "SaleYear"]
+        sorted_property[row+1, "PurchaseYear"] <- as.numeric(sorted_property[row, "SaleYear"])
+        start_cpi <- filter(cpiData, SaleYear == as.numeric(sorted_property[row, "SaleYear"]))
+        start_cpi <- as.numeric(start_cpi[1, "cpi"])
+        end_cpi <- filter(cpiData, SaleYear == as.numeric(sorted_property[row+1, "SaleYear"]))
+        end_cpi <- as.numeric(end_cpi[1, "cpi"])
+        sorted_property[row+1, "PurchaseYearCPI"] <- start_cpi
+        sorted_property[row+1, "SaleYearCPI"] <- end_cpi
+        sorted_property[row+1, "PurchasePriceCurrentValue"] <- as.numeric(sorted_property[row, "TransactedPrice"])*end_cpi/start_cpi
+        
+        
+        
       }
     }
     
 }
 
 
+
+sorted_property <- transform(sorted_property, SaleYear = as.numeric(SaleYear))
+sorted_property <- transform(sorted_property, PurchaseYear = as.numeric(PurchaseYear))
+sorted_property <- subset(sorted_property, !is.na(PurchaseYear))
+
+
 ```
 
-```{r}
-#is.na(propertyECData$Address)
-#propertyECData_NA <- subset(propertyECData, propertyECData$Address==NA)
-propertyECData[rowSums(is.na(propertyECData))==3,]
 
+
+
+```{r}
+write_csv(sorted_property, path = "./data/propertyECDataWithPresentValue")
 ```
 
