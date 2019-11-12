@@ -79,6 +79,6 @@ sorted_property <- subset(sorted_property, !is.na(PurchaseYear))
 
 
 ```{r}
-write_csv(sorted_property, path = "./data/propertyECDataWithPresentValue")
+write_csv(sorted_property, path = "./data/propertyECDataWithPresentValue.csv")
 ```
 
