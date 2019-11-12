@@ -18,6 +18,8 @@ library("plotly")
 
 ### TRANFORMATION OF DATA
 
+currentValueData <- read_csv("data/currentValueData/propertyECDataWithPresentValue.csv")
+
 propertyECData <- list.files(path = "data", pattern = "*.csv") %>%
     str_c("data/", .) %>%
     map_df(~read_csv(., col_types = cols("Completion Date" = col_character()))) %>%
@@ -165,8 +167,11 @@ server <- function(input, output, session) {
     }
     
     realValResaleHeatmap <- function(input){
-        ggplot(input, aes(x=SaleYear, y=PlanningArea, fill=RealValue)) + 
-            geom_tile()
+        str(input)
+        ggplot(input, aes(x=SaleYear, y=PlanningArea, fill=RealValueEarned)) + 
+            geom_tile() +
+            scale_fill_gradient2(low = "red", mid = "white", high = "blue", midpoint = 0) +
+            ggtitle("Average gain/loss from selling EC per Planning Area & Year")
     }
     
     
@@ -229,7 +234,12 @@ server <- function(input, output, session) {
     }
     
     realValResaleFilter <- function(){
-        data <- full_join(propertyECData, propertyECData, by = "Address")
+        str(currentValueData)
+        currentValueData %>%
+            group_by(SaleYear, PlanningArea) %>%
+            mutate(
+                RealValueEarned = mean(PurchasePriceCurrentValue - TransactedPrice)
+            )
     }
     
     
@@ -267,8 +277,7 @@ server <- function(input, output, session) {
     })
     
     output$realValResaleHeatmap <- renderPlot({
-        realValResaleFilter()
-        # realValResaleHeatmap(realValResaleFilter())
+        realValResaleHeatmap(realValResaleFilter())
     })
 }
 
