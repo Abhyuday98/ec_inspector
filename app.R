@@ -11,7 +11,6 @@
 ### PACKAGES
 
 library("shiny")
-library("shinyjs")
 library("tidyverse")
 library("plotly")
 
@@ -81,7 +80,7 @@ ui <- fluidPage(
     fluidRow(
         column(12,
                selectInput(inputId = "ViolinYear",
-                           label = "Select planning areas to compare",
+                           label = "Select Year to compare",
                            choices = allYears,
                            selected = allYears[1]),
                plotlyOutput("distNewResalePrice")
