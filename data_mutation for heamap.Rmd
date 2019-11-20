@@ -31,7 +31,7 @@ propertyECData <- list.files(path = "data", pattern = "*.csv") %>%
 names(propertyECData) <- str_replace_all(names(propertyECData), "[ ($)]*", "")
 
 propertyECData$SaleYear <- substr(propertyECData$SaleDate, nchar(propertyECData$SaleDate)-3, nchar(propertyECData$SaleDate))
-cpiData <- read_csv("./data/CPI.csv" )
+cpiData <- read_csv("./data/currentValueData/CPI.csv" )
 cpiData<- transform(cpiData, SaleYear = as.numeric(SaleYear))
 
 sorted_property <-propertyECData[order(propertyECData$Address, propertyECData$SaleDate),]
@@ -49,7 +49,7 @@ for (row in 1:nrow(sorted_property)) {
     if (!is.na(address_1) & !is.na(address_2)){
       comp = strcmp(address_2, address_1)
 
-      if (comp==TRUE){
+      if (comp==TRUE & as.numeric(sorted_property[row, "SaleYear"])+5<as.numeric(sorted_property[row+1, "SaleYear"])){
         sorted_property[row+1, "PurchaseYear"] <- as.numeric(sorted_property[row, "SaleYear"])
         start_cpi <- filter(cpiData, SaleYear == as.numeric(sorted_property[row, "SaleYear"]))
         start_cpi <- as.numeric(start_cpi[1, "cpi"])
@@ -79,6 +79,6 @@ sorted_property <- subset(sorted_property, !is.na(PurchaseYear))
 
 
 ```{r}
-write_csv(sorted_property, path = "./data/propertyECDataWithPresentValue.csv")
+write_csv(sorted_property, path = "./data/currentValueData/propertyECDataWithPresentValue.csv")
 ```
 
