@@ -15,6 +15,10 @@ library("tidyverse")
 library("plotly")
 
 
+
+
+
+
 ### TRANFORMATION OF DATA
 
 currentValueData <- read_csv("data/currentValueData/propertyECDataWithPresentValue.csv")
@@ -105,7 +109,8 @@ server <- function(input, output, session) {
     
     ### REACTIVE DATA
     
-    avgPricePerYrPAClick <- reactiveValues(data = NULL)
+    avgPricePerYrPAClick <- reactiveValues(
+        data = NULL)
     
     ### CHARTS
     
@@ -133,6 +138,7 @@ server <- function(input, output, session) {
     }
     
     avgPricePerYrPAPie <- function(input) {
+        
         ggplot(input, aes(x="", y=n, fill=TypeofSale)) +
             geom_bar(stat="identity", width=1) +
             coord_polar("y", start=0) +
@@ -152,6 +158,8 @@ server <- function(input, output, session) {
     }
     
     distNewResalePriceViolin <- function(input){
+        
+        
         ggplot(input) +
             geom_point(aes(x=TypeofSale, y=MeanTransactedPrice, fill=TypeofSale), shape = 23, size = 2) +
             geom_violin(aes(x=TypeofSale, y=TransactedPrice, fill=TypeofSale)) +
@@ -187,6 +195,7 @@ server <- function(input, output, session) {
             )
     }
     
+
     transPriceData <- function(){
         filteredData <- propertyECData %>%
             filter(
@@ -244,28 +253,56 @@ server <- function(input, output, session) {
     
     ### OUTPUTS
     
-    output$avgPricePerYrPA <- renderPlotly({
+    output$avgPricePerYrPA <- renderPlotly(
+        
+        {
+            
         avgPricePerYrPAClick$data <- event_data("plotly_click", source = "avgPricePerYrPASrc")
+        validate(
+            
+            
+            need(tryCatch(ggplotly(avgPricePerYrPAChart(avgPricePerYrPAFilter()), source = "avgPricePerYrPASrc"), error = function(e) "NULL")!="NULL", "No output Data")
+        )
+        #str("SCRAPPY DAPPY DOO")
+        #str(is.null(avgPricePerYrPAChart(avgPricePerYrPAFilter())))
         
         ggplotly(avgPricePerYrPAChart(avgPricePerYrPAFilter()), source = "avgPricePerYrPASrc")
     })
     
     output$compareNewResalePrice <- renderPlotly({
+        validate(
+            need(tryCatch(ggplotly(compareNewResalePrice(transPriceData()), source = "compareNewResalePriceSrc"), error = function(e) "NULL")!="NULL", "No output Data")
+        )
         ggplotly(compareNewResalePrice(transPriceData()), source = "compareNewResalePriceSrc")
     })
     
     output$proportionNewAndResale <- renderPlot({
+        
         if(is.null(avgPricePerYrPAClick$data)){
+            str("SCRAPPY DAPPY DOO")
+            
+            str(nrow(avgPricePerYrPAPieFilter())<1)
+            validate(
+                need(nrow(avgPricePerYrPAPieFilter())>0, "No output Data")
+            )
             avgPricePerYrPAPie(avgPricePerYrPAPieFilter())
         }
         else{
+            str("SCRAPPY DAPPY DOO1111")
+            
+            
             data <- avgPricePerYrPAClick$data
+            
             
             filteredPA <- sort(unique(avgPricePerYrPAFilter()$PlanningArea))
             calcIndPA <- data$curveNumber + 1
             
             year <- as.character(data$x)
             PA <- filteredPA[calcIndPA]
+            
+            validate(
+                need(nrow(avgPricePerYrPAPieAltFilter(list(PA = PA, year = year)))>0, "No output Data")
+            )
             
             avgPricePerYrPAPie(avgPricePerYrPAPieAltFilter(list(PA = PA, year = year)))
         }
@@ -279,6 +316,6 @@ server <- function(input, output, session) {
         realValResaleHeatmap(realValResaleFilter())
     })
 }
-
+#suppressWarnings(readLines(con=server))
 # Run the application 
 shinyApp(ui = ui, server = server)
