@@ -100,6 +100,99 @@ ui <- fluidPage(
     )
 )
 
+
+
+###
+
+
+ui1 <- fluidPage(
+    
+    # App title ----
+    titlePanel("EC Inspector Dashboard"),
+    
+    # Sidebar layout with input and output definitions ----
+    sidebarLayout(
+        
+        # Sidebar panel for inputs ----
+        sidebarPanel(
+            helpText("Filters for Overview Tab"),
+            # Input: Select the random distribution type ----
+            selectInput(inputId = "PlanningAreas",
+                        label = "Select planning areas to compare",
+                        choices = selectPAList,
+                        selected = selectPAList[1:2],
+                        multiple = TRUE),
+            
+            # br() element to introduce extra vertical spacing ----
+            br(),
+            
+            # Input: Slider for the number of observations to generate ----
+            sliderInput(inputId = "Years",
+                        label = "Select a year range",
+                        step = 1,
+                        min = minYear,
+                        max = maxYear,
+                        value = c(minYear, maxYear),
+                        dragRange=TRUE,
+                        timeFormat = "%Y"),
+            br(),
+            helpText("Filters for Distribution and Profit/Loss Tab "),
+            selectInput(inputId = "ViolinYear",
+                        label = "Select Year to compare",
+                        choices = allYears,
+                        selected = allYears[1])
+        ),
+        
+        # Main panel for displaying outputs ----
+        mainPanel(
+            
+            # Output: Tabset w/ plot, summary, and table ----
+            tabsetPanel(type = "tabs",
+                        tabPanel("Overview", fluidRow(
+                            column(12,
+                                   helpText("*Double click on the grey area to unselect data points")
+                            )
+                        ),
+                        fluidRow(
+                            column(8,
+                                   plotlyOutput("avgPricePerYrPA")
+                            ),
+                            column(3,
+                                   plotOutput("proportionNewAndResale")
+                            )
+                        ),
+                        fluidRow(
+                            column(12,
+                                   plotlyOutput("compareNewResalePrice")
+                            )
+                        )
+                        
+                        ),
+                        #tabPanel("Summary", plotlyOutput("compareNewResalePrice")),
+                        tabPanel("Distribution and Profit/Loss", 
+                                 fluidRow(
+                                     column(12,
+                                            plotlyOutput("distNewResalePrice")
+                                     )
+                                 ),
+                                 fluidRow(
+                                     column(12,
+                                            plotOutput("realValResaleHeatmap")
+                                     )
+                                 ))
+                        #tabPanel("Dashboard 3", plotOutput("realValResaleHeatmap"))
+            )
+            
+        )
+    ),
+    fluidRow(
+        helpText("Done by Abhyuday, Bernice Ng, Ming Wei")
+    )
+    
+    
+)
+
+###
 server <- function(input, output, session) {
     
     ### COMMON DATA
@@ -161,8 +254,9 @@ server <- function(input, output, session) {
         
         
         ggplot(input) +
-            geom_point(aes(x=TypeofSale, y=MeanTransactedPrice, fill=TypeofSale), shape = 23, size = 2) +
-            geom_violin(aes(x=TypeofSale, y=TransactedPrice, fill=TypeofSale)) +
+            geom_point(aes(x=TypeofSale, y=MeanTransactedPrice, fill=TypeofSale), shape = 23, size = 2, alpha = 0.7, colour = "transparent" ) +
+            geom_violin(aes(x=TypeofSale, y=TransactedPrice, fill=TypeofSale),width=1.4, alpha=0.7 ) +
+            geom_boxplot(aes(x=TypeofSale, y=TransactedPrice, fill=TypeofSale),width=0.1, color="black", outlier.size = -1)+
             facet_grid(. ~ PlanningArea) +
             scale_fill_manual(values = saleTypeColor) +
             theme(panel.spacing = unit(0, "lines"), axis.text.x=element_blank(), axis.ticks.x=element_blank(), panel.grid.major.x = element_blank(),
@@ -170,6 +264,7 @@ server <- function(input, output, session) {
                   strip.background = element_rect(color = "black", size = 1)) +
             ylab("Transacted Price") +
             xlab("Planning Area") +
+            
             ggtitle("Distribution Executive Condo Transacted Price per Year, Planning Area & Type of Sale")
     }
     
@@ -318,4 +413,4 @@ server <- function(input, output, session) {
 }
 #suppressWarnings(readLines(con=server))
 # Run the application 
-shinyApp(ui = ui, server = server)
+shinyApp(ui = ui1, server = server)
