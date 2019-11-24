@@ -39,72 +39,6 @@ allYears <- sort(unique(propertyECData$SaleYear))
 selectPAList <- sort(unique(propertyECData$PlanningArea))
 
 
-
-ui <- fluidPage(
-    
-    titlePanel("EC Inspector Dashboard"),
-    
-    fluidRow(
-        column(3,
-               selectInput(inputId = "PlanningAreas",
-                           label = "Select planning areas to compare",
-                           choices = selectPAList,
-                           selected = selectPAList[1:2],
-                           multiple = TRUE)
-        ),
-        column(5,
-               sliderInput(inputId = "Years",
-                           label = "Select a year range",
-                           step = 1,
-                           min = minYear,
-                           max = maxYear,
-                           value = c(minYear, maxYear),
-                           dragRange=TRUE,
-                           timeFormat = "%Y")
-        )
-    ),
-    fluidRow(
-        column(12,
-            helpText("*Double click on the grey area to unselect data points")
-        )
-    ),
-    fluidRow(
-        column(8,
-               plotlyOutput("avgPricePerYrPA")
-        ),
-        column(3,
-               plotOutput("proportionNewAndResale")
-        )
-    ),
-    fluidRow(
-        column(12,
-               plotlyOutput("compareNewResalePrice")
-        )
-    ),
-    fluidRow(
-        column(12,
-               selectInput(inputId = "ViolinYear",
-                           label = "Select Year to compare",
-                           choices = allYears,
-                           selected = allYears[1]),
-               plotlyOutput("distNewResalePrice")
-        )
-    ),
-    fluidRow(
-        column(12,
-               plotOutput("realValResaleHeatmap")
-        )
-    ),
-    fluidRow(
-        helpText("Done by Abhyuday, Bernice Ng, Ming Wei")
-    )
-)
-
-
-
-###
-
-
 ui1 <- fluidPage(
     
     # App title ----
@@ -374,20 +308,13 @@ server <- function(input, output, session) {
     output$proportionNewAndResale <- renderPlot({
         
         if(is.null(avgPricePerYrPAClick$data)){
-            str("SCRAPPY DAPPY DOO")
-            
-            str(nrow(avgPricePerYrPAPieFilter())<1)
             validate(
                 need(nrow(avgPricePerYrPAPieFilter())>0, "No output Data")
             )
             avgPricePerYrPAPie(avgPricePerYrPAPieFilter())
         }
         else{
-            str("SCRAPPY DAPPY DOO1111")
-            
-            
             data <- avgPricePerYrPAClick$data
-            
             
             filteredPA <- sort(unique(avgPricePerYrPAFilter()$PlanningArea))
             calcIndPA <- data$curveNumber + 1

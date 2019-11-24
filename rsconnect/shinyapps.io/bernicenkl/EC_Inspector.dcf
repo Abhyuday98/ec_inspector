@@ -5,9 +5,9 @@ account: bernicenkl
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 1449817
-bundleId: 2580220
+bundleId: 2607196
 url: https://bernicenkl.shinyapps.io/EC_Inspector/
-when: 1573482574.3069
+when: 1574347165.77659
 asMultiple: FALSE
 asStatic: FALSE
 ignoredFiles: .gitattributes
